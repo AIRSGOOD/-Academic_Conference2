@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>교사 회원가입</title>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&display=swap" rel="stylesheet"/>
+  <style>
+    *{margin:0;padding:0;box-sizing:border-box;}
+    body{font-family:'Noto Sans KR',sans-serif;min-height:100vh;display:flex;flex-direction:column;background:#f0f8fc;}
+    .header{background:linear-gradient(135deg,#0099cc 0%,#005f8a 100%);padding:34px 32px 54px;text-align:center;border-radius:0 0 36px 36px;position:relative;overflow:hidden;}
+    .header::before{content:'';position:absolute;width:200px;height:200px;background:rgba(255,255,255,.12);border-radius:50%;top:-70px;right:-50px;}
+    .header .emoji{font-size:38px;display:block;margin-bottom:6px;}
+    .header h1{color:white;font-size:23px;font-weight:900;}
+    .header p{color:rgba(255,255,255,.8);font-size:12px;margin-top:4px;}
+    .card{background:white;margin:-24px 24px 24px;border-radius:20px;padding:28px 26px;box-shadow:0 8px 40px rgba(0,100,160,.13);animation:fadeUp .5s ease both .1s;}
+    @keyframes fadeUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+    .field{margin-bottom:18px;}
+    .field label{display:block;font-size:12px;font-weight:500;color:#888;margin-bottom:5px;}
+    .field input{width:100%;padding:11px 14px;border:none;border-bottom:2px solid #cde8f5;background:transparent;font-family:'Noto Sans KR',sans-serif;font-size:14px;color:#222;outline:none;transition:border-color .2s;}
+    .field input:focus{border-bottom-color:#0099cc;}
+    .field input::placeholder{color:#bbb;}
+    .hint{font-size:11px;color:#aaa;margin-top:4px;}
+    .btn-signup{width:100%;padding:14px;background:linear-gradient(90deg,#0099cc,#005f8a);color:white;border:none;border-radius:12px;font-family:'Noto Sans KR',sans-serif;font-size:15px;font-weight:700;cursor:pointer;letter-spacing:2px;margin-top:8px;box-shadow:0 4px 18px rgba(0,153,204,.35);transition:transform .15s;}
+    .btn-signup:hover{transform:translateY(-2px);}
+    .btn-signup:disabled{opacity:.6;cursor:not-allowed;transform:none;}
+    .back{display:block;text-align:center;margin-top:14px;font-size:12px;color:#aaa;text-decoration:none;}
+    .back:hover{color:#0099cc;}
+    .error{background:#fff0f0;border:1px solid #ffcccc;border-radius:8px;padding:10px 14px;font-size:13px;color:#cc3333;margin-bottom:12px;display:none;white-space:pre-line;}
+    .success{background:#f0fff4;border:1px solid #99ddbb;border-radius:8px;padding:10px 14px;font-size:13px;color:#228844;margin-bottom:12px;display:none;}
+    .loading{text-align:center;color:#aaa;font-size:13px;margin-bottom:12px;display:none;}
+  </style>
+</head>
+<body>
+  <div class="header">
+    <span class="emoji">👩‍🏫</span>
+    <h1>교사 회원가입</h1>
+    <p>교사 계정을 만드세요</p>
+  </div>
+  <div class="card">
+    <div class="loading" id="loading">⏳ 처리 중...</div>
+    <div class="error" id="err"></div>
+    <div class="success" id="suc"></div>
+    <div class="field"><label>이름</label><input type="text" id="name" placeholder="실명을 입력하세요"/></div>
+    <div class="field"><label>아이디</label><input type="text" id="uid" placeholder="영문+숫자 4자 이상"/></div>
+    <div class="field"><label>비밀번호</label><input type="password" id="pw" placeholder="6자리 이상"/></div>
+    <div class="field"><label>비밀번호 확인</label><input type="password" id="pw2" placeholder="비밀번호를 다시 입력하세요"/></div>
+    <div class="field">
+      <label>전화번호</label>
+      <input type="tel" id="phone" placeholder="010-0000-0000" maxlength="13" oninput="formatPhone(this)"/>
+      <div class="hint">※ 010-0000-0000 형식으로 입력하세요 · 같은 전화번호로 계정을 여러 개 만들 수 없습니다</div>
+    </div>
+    <button class="btn-signup" id="signupBtn" onclick="doSignup()">가입하기</button>
+    <a href="teacher-login.html" class="back">← 로그인으로 돌아가기</a>
+  </div>
+  <script type="module">
+    import DB from './db.js';
+
+    // 전화번호 자동 하이픈 포맷
+    window.formatPhone = function(el) {
+      let v = el.value.replace(/[^0-9]/g, '');
+      if (v.length <= 3)        el.value = v;
+      else if (v.length <= 7)   el.value = v.slice(0,3) + '-' + v.slice(3);
+      else                      el.value = v.slice(0,3) + '-' + v.slice(3,7) + '-' + v.slice(7,11);
+    };
+
+    window.doSignup = async function() {
+      const name  = document.getElementById('name').value.trim();
+      const id    = document.getElementById('uid').value.trim();
+      const pw    = document.getElementById('pw').value;
+      const pw2   = document.getElementById('pw2').value;
+      const phoneRaw = document.getElementById('phone').value.trim();
+      const phoneRegex = /^010-\d{4}-\d{4}$/;
+      if (!name||!id||!pw||!pw2||!phoneRaw) { showErr('모든 항목을 입력하세요.'); return; }
+      if (id.length < 4)              { showErr('아이디는 4자 이상이어야 합니다.'); return; }
+      if (pw.length < 6)              { showErr('비밀번호는 6자 이상이어야 합니다.'); return; }
+      if (pw !== pw2)                 { showErr('비밀번호가 일치하지 않습니다.'); return; }
+      if (!phoneRegex.test(phoneRaw)) { showErr('전화번호를 010-0000-0000 형식으로 입력하세요.'); return; }
+      const phone = phoneRaw.replace(/-/g,'');
+      setLoading(true);
+      const res = await DB.register({ id, password:pw, name, phone, role:'teacher' });
+      setLoading(false);
+      if (!res.ok) { showErr(res.msg); return; }
+      document.getElementById('err').style.display='none';
+      const suc = document.getElementById('suc');
+      suc.textContent='회원가입이 완료되었습니다! 로그인 페이지로 이동합니다.';
+      suc.style.display='block';
+      setTimeout(()=>location.href='teacher-login.html', 1800);
+    };
+    function showErr(msg){const e=document.getElementById('err');e.textContent=msg;e.style.display='block';document.getElementById('suc').style.display='none';}
+    function setLoading(b){document.getElementById('loading').style.display=b?'block':'none';document.getElementById('signupBtn').disabled=b;}
+    document.addEventListener('keydown',e=>{if(e.key==='Enter')window.doSignup();});
+  </script>
+</body>
+</html>

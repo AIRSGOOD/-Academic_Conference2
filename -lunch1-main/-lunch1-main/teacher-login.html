@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>교사용 로그인</title>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&display=swap" rel="stylesheet"/>
+  <style>
+    *{margin:0;padding:0;box-sizing:border-box;}
+    body{font-family:'Noto Sans KR',sans-serif;min-height:100vh;display:flex;flex-direction:column;background:#f0f8fc;}
+    .header{background:linear-gradient(135deg,#0099cc 0%,#005f8a 100%);padding:40px 32px 60px;text-align:center;border-radius:0 0 36px 36px;position:relative;overflow:hidden;}
+    .header::before{content:'';position:absolute;width:220px;height:220px;background:rgba(255,255,255,.12);border-radius:50%;top:-80px;right:-60px;}
+    .header .emoji{font-size:44px;display:block;margin-bottom:8px;}
+    .header h1{color:white;font-size:26px;font-weight:900;margin-bottom:4px;}
+    .header p{color:rgba(255,255,255,.8);font-size:13px;}
+    .card{background:white;margin:-24px 24px 24px;border-radius:20px;padding:32px 28px;box-shadow:0 8px 40px rgba(0,100,160,.13);animation:fadeUp .5s ease both .1s;}
+    @keyframes fadeUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+    .field{margin-bottom:20px;}
+    .field label{display:block;font-size:12px;font-weight:500;color:#888;margin-bottom:6px;}
+    .field input{width:100%;padding:12px 14px;border:none;border-bottom:2px solid #cde8f5;background:transparent;font-family:'Noto Sans KR',sans-serif;font-size:15px;color:#222;outline:none;transition:border-color .2s;}
+    .field input:focus{border-bottom-color:#0099cc;}
+    .field input::placeholder{color:#bbb;}
+    .btn-login{width:100%;padding:15px;background:linear-gradient(90deg,#0099cc,#005f8a);color:white;border:none;border-radius:12px;font-family:'Noto Sans KR',sans-serif;font-size:16px;font-weight:700;cursor:pointer;letter-spacing:2px;margin-top:8px;box-shadow:0 4px 18px rgba(0,153,204,.35);transition:transform .15s,box-shadow .15s;}
+    .btn-login:hover{transform:translateY(-2px);box-shadow:0 8px 24px rgba(0,153,204,.5);}
+    .btn-login:disabled{opacity:.6;cursor:not-allowed;transform:none;}
+    .links{display:flex;justify-content:center;align-items:center;gap:6px;margin-top:18px;font-size:13px;}
+    .links span{color:#aaa;}
+    .links a{color:#0077aa;font-weight:700;text-decoration:none;}
+    .links a:hover{text-decoration:underline;}
+    .back{display:block;text-align:center;margin-top:14px;font-size:12px;color:#aaa;text-decoration:none;}
+    .back:hover{color:#0099cc;}
+    .error{background:#fff0f0;border:1px solid #ffcccc;border-radius:8px;padding:10px 14px;font-size:13px;color:#cc3333;margin-bottom:14px;display:none;white-space:pre-line;}
+    .loading{text-align:center;color:#aaa;font-size:13px;margin-bottom:12px;display:none;}
+  </style>
+</head>
+<body>
+  <div class="header">
+    <span class="emoji">👩‍🏫</span>
+    <h1>교사용</h1>
+    <p>교사 계정으로 로그인하세요</p>
+  </div>
+  <div class="card">
+    <div class="loading" id="loading">⏳ 로그인 중...</div>
+    <div class="error" id="err"></div>
+    <div class="field"><label>아이디</label><input type="text" id="uid" placeholder="아이디를 입력하세요"/></div>
+    <div class="field"><label>비밀번호</label><input type="password" id="pw" placeholder="비밀번호를 입력하세요"/></div>
+    <button class="btn-login" id="loginBtn" onclick="doLogin()">로그인</button>
+    <div class="links"><span>계정이 없으신가요?</span><a href="teacher-signup.html">회원가입</a></div>
+    <a href="index.html" class="back">← 처음으로</a>
+  </div>
+  <script type="module">
+    import DB from './db.js';
+    window.doLogin = async function() {
+      const id = document.getElementById('uid').value.trim();
+      const pw = document.getElementById('pw').value;
+      if (!id || !pw) { showErr('아이디와 비밀번호를 입력하세요.'); return; }
+      setLoading(true);
+      const res = await DB.login(id, pw);
+      setLoading(false);
+      if (!res.ok) { showErr(res.msg); return; }
+      if (res.user.role !== 'teacher') { showErr('교사 계정이 아닙니다. 학생용 로그인을 이용하세요.'); return; }
+      DB.setSession(res.user);
+      location.href = 'main.html';
+    };
+    function showErr(msg) { const e=document.getElementById('err'); e.textContent=msg; e.style.display='block'; }
+    function setLoading(b) {
+      document.getElementById('loading').style.display = b ? 'block' : 'none';
+      document.getElementById('loginBtn').disabled = b;
+    }
+    document.addEventListener('keydown', e => { if(e.key==='Enter') window.doLogin(); });
+  </script>
+</body>
+</html>

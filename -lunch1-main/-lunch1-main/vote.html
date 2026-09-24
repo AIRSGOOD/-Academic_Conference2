@@ -1,0 +1,492 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>급식 투표 - 급식 플랫폼</title>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&display=swap" rel="stylesheet"/>
+  <style>
+    :root{--blue:#0099cc;--sb:80px;--sb-ex:220px;--bg:#eef4f8;--card:#fff;--text:#1e2a38;--muted:#7a8fa0;}
+    *{margin:0;padding:0;box-sizing:border-box;}
+    body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);min-height:100vh;display:flex;}
+    .sidebar{position:fixed;left:0;top:0;bottom:0;width:var(--sb);background:#1b2b3a;display:flex;flex-direction:column;z-index:200;transition:width .26s cubic-bezier(.4,0,.2,1);overflow:hidden;box-shadow:2px 0 16px rgba(0,0,0,.18);}
+    .sidebar:hover{width:var(--sb-ex);}
+    .sb-top{padding:18px 0 14px;border-bottom:1px solid rgba(255,255,255,.07);display:flex;flex-direction:column;align-items:center;gap:5px;flex-shrink:0;}
+    .hamburger{display:flex;flex-direction:column;gap:5px;}
+    .hamburger span{display:block;width:26px;height:2.5px;background:rgba(255,255,255,.45);border-radius:2px;}
+    .sb-all{font-size:11px;font-weight:700;color:rgba(255,255,255,.4);letter-spacing:1px;white-space:nowrap;}
+    .nav{flex:1;display:flex;flex-direction:column;overflow:hidden;padding:6px 0;}
+    .nav-item{position:relative;cursor:pointer;}
+    .nav-main{display:flex;align-items:center;padding:13px 0;gap:14px;transition:background .18s;position:relative;white-space:nowrap;}
+    .nav-main::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;background:transparent;border-radius:0 2px 2px 0;}
+    .nav-item.active .nav-main::before{background:var(--blue);}
+    .nav-item:hover .nav-main,.nav-item.active .nav-main{background:rgba(255,255,255,.06);}
+    .nav-icon-wrap{width:var(--sb);display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+    .nav-icon{font-size:22px;line-height:1;}
+    .nav-label{font-size:13px;font-weight:700;color:rgba(255,255,255,.6);white-space:nowrap;transition:color .18s;}
+    .nav-item.active .nav-label,.nav-item:hover .nav-label{color:rgba(255,255,255,.95);}
+    .nav-sub{max-height:0;overflow:hidden;transition:max-height .22s ease;background:rgba(0,0,0,.15);}
+    .sidebar:hover .nav-item:hover .nav-sub{max-height:200px;}
+    .nav-sub a{display:flex;align-items:center;gap:10px;padding:9px 16px 9px 36px;font-size:13px;color:rgba(255,255,255,.5);text-decoration:none;white-space:nowrap;transition:background .14s,color .14s;}
+    .nav-sub a:hover{background:rgba(255,255,255,.07);color:#fff;}
+    .sub-icon{font-size:14px;width:18px;text-align:center;}
+    .sb-bottom{border-top:1px solid rgba(255,255,255,.07);flex-shrink:0;}
+    .logout-row{display:flex;align-items:center;gap:14px;padding:14px 0;cursor:pointer;transition:background .15s;white-space:nowrap;}
+    .logout-row:hover{background:rgba(255,60,60,.1);}
+    .main{margin-left:var(--sb);flex:1;display:flex;flex-direction:column;min-height:100vh;}
+    .page-header{background:linear-gradient(135deg,#0099cc,#005f8a);padding:26px 32px 34px;position:relative;overflow:hidden;}
+    .page-header::before{content:'';position:absolute;width:180px;height:180px;background:rgba(255,255,255,.08);border-radius:50%;top:-50px;right:-30px;}
+    .header-inner{max-width:720px;width:100%;margin:0 auto;position:relative;z-index:1;}
+    .header-inner h1{font-size:22px;font-weight:900;color:white;margin-bottom:4px;}
+    .header-inner p{font-size:13px;color:rgba(255,255,255,.8);}
+    .content{padding:24px 32px;flex:1;max-width:720px;width:100%;margin:0 auto;}
+    @keyframes fadeUp{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
+
+    /* 생성 패널 */
+    .create-panel{background:var(--card);border-radius:18px;padding:26px;box-shadow:0 2px 16px rgba(0,60,120,.08);margin-bottom:20px;animation:fadeUp .4s ease both;border:1.5px solid #d0e8f5;}
+    .panel-title{font-size:14px;font-weight:700;color:var(--text);margin-bottom:16px;display:flex;align-items:center;gap:8px;}
+    .vote-q-input{width:100%;padding:12px 16px;border:1.5px solid #d0e8f5;border-radius:12px;font-family:'Noto Sans KR',sans-serif;font-size:15px;color:var(--text);outline:none;margin-bottom:14px;transition:border-color .2s;}
+    .vote-q-input:focus{border-color:var(--blue);}
+    .vote-q-input::placeholder{color:#b0c4d4;}
+    .options-label{font-size:12px;font-weight:700;color:var(--muted);margin-bottom:8px;}
+    .option-row{display:flex;align-items:center;gap:8px;margin-bottom:8px;}
+    .option-input{flex:1;padding:10px 14px;border:1.5px solid #d0e8f5;border-radius:10px;font-family:'Noto Sans KR',sans-serif;font-size:14px;color:var(--text);outline:none;transition:border-color .2s;}
+    .option-input:focus{border-color:var(--blue);}
+    .option-input::placeholder{color:#c5d5df;}
+    .option-input:disabled{background:#f5f5f5;color:#aaa;cursor:not-allowed;}
+    .rm-btn{width:32px;height:32px;border:none;background:#fff0f0;border-radius:8px;color:#e53935;font-size:16px;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-weight:700;}
+    .rm-btn:hover{background:#ffe0e0;}
+    .add-opt-btn{width:100%;padding:10px;border:1.5px dashed #b0d4e8;border-radius:10px;background:#f5fbff;color:var(--blue);font-family:'Noto Sans KR',sans-serif;font-size:13px;font-weight:600;cursor:pointer;margin-bottom:14px;transition:border-color .15s;}
+    .add-opt-btn:hover{border-color:var(--blue);}
+    .vote-date-row{display:flex;align-items:center;gap:10px;margin-bottom:16px;}
+    .vote-date-row label{font-size:12px;font-weight:700;color:var(--muted);white-space:nowrap;}
+    .date-input{flex:1;padding:10px 14px;border:1.5px solid #d0e8f5;border-radius:10px;font-family:'Noto Sans KR',sans-serif;font-size:14px;color:var(--text);outline:none;transition:border-color .2s;}
+    .date-input:focus{border-color:var(--blue);}
+    .create-btn{width:100%;padding:14px;background:linear-gradient(90deg,#0099cc,#005f8a);color:white;border:none;border-radius:12px;font-family:'Noto Sans KR',sans-serif;font-size:15px;font-weight:700;cursor:pointer;box-shadow:0 3px 14px rgba(0,153,204,.3);transition:transform .15s;}
+    .create-btn:hover{transform:translateY(-1px);}
+    .create-btn:disabled{opacity:.6;cursor:not-allowed;transform:none;}
+    .etc-fixed{display:flex;align-items:center;gap:8px;margin-bottom:14px;}
+    .etc-tag{font-size:11px;font-weight:700;color:#00838f;background:#e0f7fa;padding:2px 8px;border-radius:6px;white-space:nowrap;}
+
+    /* 투표 카드 */
+    .vote-card{background:var(--card);border-radius:18px;box-shadow:0 2px 16px rgba(0,60,120,.08);overflow:hidden;margin-bottom:20px;animation:fadeUp .4s ease both;}
+    .vote-card.closed{opacity:.78;}
+    .vote-card-head{padding:20px 24px 14px;border-bottom:1px solid #eef3f8;display:flex;align-items:flex-start;justify-content:space-between;gap:12px;}
+    .vote-status{font-size:11px;font-weight:700;padding:3px 10px;border-radius:10px;white-space:nowrap;flex-shrink:0;}
+    .status-open{background:#e0f7fa;color:#00838f;}
+    .status-closed{background:#f3f3f3;color:#888;}
+    .vote-question{font-size:17px;font-weight:900;color:var(--text);line-height:1.4;}
+    .vote-meta{font-size:12px;color:var(--muted);margin-top:5px;}
+    .vote-target{font-size:12px;font-weight:700;color:#e57373;margin-top:3px;}
+    .vote-deadline{font-size:12px;font-weight:700;color:#ff7043;margin-top:3px;}
+
+    /* 선택지 */
+    .vote-options{padding:18px 24px;display:flex;flex-direction:column;gap:10px;}
+    .opt-row{display:flex;align-items:center;gap:12px;cursor:pointer;padding:2px 0;}
+    .opt-row.disabled{cursor:default;}
+    .radio-outer{width:22px;height:22px;border-radius:50%;border:2px solid #b0d4e8;background:white;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:border-color .18s,background .18s;}
+    .radio-outer.checked{border-color:var(--blue);background:var(--blue);}
+    .radio-outer.checked::after{content:'';width:8px;height:8px;border-radius:50%;background:white;display:block;}
+    .opt-label{font-size:14px;color:var(--text);flex:1;}
+    .etc-text-input{flex:1;padding:8px 12px;border:1.5px solid #d0e8f5;border-radius:8px;font-family:'Noto Sans KR',sans-serif;font-size:14px;color:var(--text);outline:none;transition:border-color .2s;}
+    .etc-text-input:focus{border-color:var(--blue);}
+    .etc-text-input::placeholder{color:#c5d5df;}
+
+    /* 결과 바 */
+    .result-wrap{flex:1;}
+    .result-top{display:flex;justify-content:space-between;align-items:center;font-size:13px;margin-bottom:6px;}
+    .result-bar-bg{height:10px;background:#eef3f8;border-radius:6px;overflow:hidden;}
+    .result-bar-fill{height:100%;border-radius:6px;background:linear-gradient(90deg,#0099cc,#5cc8e0);transition:width .7s ease;}
+    .rank-b{font-size:11px;font-weight:700;padding:2px 8px;border-radius:6px;margin-left:6px;}
+    .rb1{background:#fff3cd;color:#856404;}
+    .rb2{background:#f0f0f0;color:#555;}
+    .rb3{background:#fce8d4;color:#a0522d;}
+
+    /* 푸터 */
+    .vote-footer{padding:16px 24px;border-top:1px solid #eef3f8;display:flex;flex-wrap:wrap;gap:10px;align-items:center;background:#f8fbff;}
+    .total-votes{font-size:13px;color:var(--muted);flex:1;}
+    .submit-btn{padding:11px 26px;background:linear-gradient(90deg,#0099cc,#005f8a);color:white;border:none;border-radius:10px;font-family:'Noto Sans KR',sans-serif;font-size:14px;font-weight:700;cursor:pointer;box-shadow:0 3px 12px rgba(0,153,204,.3);transition:transform .15s;}
+    .submit-btn:hover{transform:translateY(-1px);}
+    .submit-btn:disabled{opacity:.6;cursor:not-allowed;transform:none;}
+    .close-btn{padding:11px 20px;background:white;border:2px solid #e53935;border-radius:10px;font-family:'Noto Sans KR',sans-serif;font-size:13px;font-weight:700;color:#e53935;cursor:pointer;transition:background .15s;}
+    .close-btn:hover{background:#fff0f0;}
+    .result-link{padding:11px 20px;background:white;border:1.5px solid #b0d4e8;border-radius:10px;font-family:'Noto Sans KR',sans-serif;font-size:13px;font-weight:700;color:var(--blue);cursor:pointer;text-decoration:none;display:inline-block;}
+    .result-link:hover{background:#e8f7ff;}
+    .voted-badge{display:inline-flex;align-items:center;gap:5px;background:#e0f7fa;color:#00838f;font-size:13px;font-weight:700;padding:8px 16px;border-radius:10px;}
+
+    .empty{text-align:center;padding:60px 20px;color:var(--muted);}
+    .empty .e-icon{font-size:52px;margin-bottom:14px;}
+    .empty p{font-size:15px;font-weight:500;}
+    .spinner{text-align:center;padding:40px;color:var(--muted);}
+  </style>
+</head>
+<body>
+<nav class="sidebar">
+  <div class="sb-top"><div class="hamburger"><span></span><span></span><span></span></div><span class="sb-all">전체</span></div>
+  <div class="nav">
+    <div class="nav-item"><div class="nav-main"><div class="nav-icon-wrap"><span class="nav-icon">🏠</span></div><span class="nav-label">홈</span></div><div class="nav-sub"><a href="main.html"><span class="sub-icon">📋</span>게시판</a></div></div>
+    <div class="nav-item active"><div class="nav-main"><div class="nav-icon-wrap"><span class="nav-icon">🗳️</span></div><span class="nav-label">급식투표</span></div><div class="nav-sub"><a href="vote.html"><span class="sub-icon">✅</span>투표하기</a><a href="vote-result.html"><span class="sub-icon">📈</span>결과 보기</a></div></div>
+    <div class="nav-item"><div class="nav-main"><div class="nav-icon-wrap"><span class="nav-icon">🍱</span></div><span class="nav-label">오늘의급식</span></div><div class="nav-sub"><a href="meal.html"><span class="sub-icon">📅</span>오늘 메뉴</a></div></div>
+    <div class="nav-item"><div class="nav-main"><div class="nav-icon-wrap"><span class="nav-icon">✏️</span></div><span class="nav-label">글쓰기</span></div><div class="nav-sub"><a href="write.html"><span class="sub-icon">📝</span>새 글 작성</a></div></div>
+    <div class="nav-item"><div class="nav-main"><div class="nav-icon-wrap"><span class="nav-icon">🏫</span></div><span class="nav-label">학교선택</span></div><div class="nav-sub"><a href="school-select.html"><span class="sub-icon">🔍</span>학교 검색</a></div></div>
+  </div>
+  <div class="sb-bottom"><div class="logout-row" id="logoutBtn"><div class="nav-icon-wrap"><span class="nav-icon">🚪</span></div><span class="nav-label" style="color:rgba(255,100,100,.75);">로그아웃</span></div></div>
+</nav>
+
+<div class="main">
+  <div class="page-header">
+    <div class="header-inner">
+      <h1>🗳️ 급식 투표</h1>
+      <p>내일 급식 메뉴를 투표해요</p>
+    </div>
+  </div>
+  <div class="content">
+    <!-- 교사 전용 생성 패널 -->
+    <div class="create-panel" id="createPanel" style="display:none;">
+      <div class="panel-title">📋 새 투표 만들기</div>
+      <input class="vote-q-input" type="text" id="voteQuestion" placeholder="투표 제목 (예: 내일 급식 메뉴 선택)"/>
+      <div class="options-label">선택지 (기타는 자동으로 마지막에 추가됩니다)</div>
+      <div id="optionList"></div>
+      <!-- 기타 항상 고정 -->
+      <div class="etc-fixed">
+        <input class="option-input" type="text" value="기타 (학생이 직접 입력)" disabled/>
+        <span class="etc-tag">자동 추가</span>
+      </div>
+      <button class="add-opt-btn" id="addOptBtn">+ 선택지 추가</button>
+      <div class="vote-date-row">
+        <label>투표 대상 날짜</label>
+        <input class="date-input" type="date" id="voteTargetDate"/>
+      </div>
+      <div class="vote-date-row">
+        <label>투표 마감 날짜</label>
+        <input class="date-input" type="date" id="voteDeadline"/>
+      </div>
+      <button class="create-btn" id="createBtn">투표 생성 및 공지 올리기</button>
+    </div>
+    <div id="voteList"><div class="spinner">⏳ 불러오는 중...</div></div>
+  </div>
+</div>
+
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+  import { getDatabase, ref, push, set, get, update, onValue }
+    from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+  import DB from './db.js';
+
+  const cfg = {
+    apiKey:"AIzaSyAvNwIF9BXFY5Clkf9SDZbK79GGvds199E",
+    authDomain:"school-21d4a.firebaseapp.com",
+    databaseURL:"https://school-21d4a-default-rtdb.asia-southeast1.firebasedatabase.app",
+    projectId:"school-21d4a",
+    storageBucket:"school-21d4a.firebasestorage.app",
+    messagingSenderId:"95581019938",
+    appId:"1:95581019938:web:7e28da6c84744aeba14f7b"
+  };
+  const fapp = initializeApp(cfg);
+  const fdb  = getDatabase(fapp);
+
+  const user = DB.getSession();
+  if (!user) location.href = 'index.html';
+  document.getElementById('logoutBtn').onclick = () => { DB.clearSession(); location.href='index.html'; };
+  const isTeacher = user.role === 'teacher';
+
+  /* ══ 교사 전용 생성 UI ══ */
+  if (isTeacher) {
+    document.getElementById('createPanel').style.display = 'block';
+
+    // 선택지 DOM 직접 관리 (JS 배열 동기화 문제 완전 제거)
+    function getOptValues() {
+      return Array.from(document.querySelectorAll('.dyn-opt-input'))
+                  .map(el => el.value.trim())
+                  .filter(Boolean);
+    }
+
+    function addOptRow(val = '') {
+      const list = document.getElementById('optionList');
+      const row  = document.createElement('div');
+      row.className = 'option-row';
+      row.innerHTML = `
+        <input class="option-input dyn-opt-input" type="text" placeholder="선택지" value="${val}"/>
+        <button class="rm-btn" type="button">✕</button>`;
+      row.querySelector('.rm-btn').addEventListener('click', () => {
+        if (document.querySelectorAll('.dyn-opt-input').length > 1) {
+          row.remove();
+        } else {
+          alert('선택지는 최소 1개 이상 있어야 합니다.');
+        }
+      });
+      list.appendChild(row);
+    }
+
+    // 기본 2개
+    addOptRow(); addOptRow();
+
+    document.getElementById('addOptBtn').addEventListener('click', () => addOptRow());
+
+    document.getElementById('createBtn').addEventListener('click', async () => {
+      const question  = document.getElementById('voteQuestion').value.trim();
+      const targetDate= document.getElementById('voteTargetDate').value;
+      const deadline  = document.getElementById('voteDeadline').value;
+      const validOpts = getOptValues();
+
+      if (!question)           { alert('투표 제목을 입력하세요.'); return; }
+      if (validOpts.length < 1){ alert('선택지를 1개 이상 입력하세요.'); return; }
+      if (!targetDate)         { alert('투표 대상 날짜를 선택하세요.'); return; }
+      if (!deadline)           { alert('투표 마감 날짜를 선택하세요.'); return; }
+      if (deadline < targetDate){ alert('마감 날짜는 대상 날짜 이후여야 합니다.'); return; }
+
+      const btn = document.getElementById('createBtn');
+      btn.disabled = true; btn.textContent = '생성 중...';
+
+      const optList = [
+        ...validOpts.map(label => ({ label, isEtc: false })),
+        { label: '기타', isEtc: true }
+      ];
+
+      const voteData = {
+        question, targetDate, deadline,
+        options  : optList,
+        status   : 'open',
+        createdAt: Date.now(),
+        createdBy: user.name,
+        createdById: user.id,
+        voters   : {}
+      };
+
+      const vRef = push(ref(fdb, 'votes'));
+      voteData.id = vRef.key;
+      await set(vRef, voteData);
+
+      await DB.addPost({
+        title   : `🗳️ [투표] ${question}`,
+        content : `📅 대상 날짜: ${targetDate} / 마감: ${deadline}\n선택지: ${validOpts.join(', ')}, 기타\n\n👉 급식 투표 메뉴에서 투표해주세요!`,
+        image: null, authorId: user.id, authorName: user.name,
+        authorRole: 'teacher', isVoteNotice: true, voteId: voteData.id
+      });
+
+      // 초기화
+      document.getElementById('optionList').innerHTML = '';
+      addOptRow(); addOptRow();
+      document.getElementById('voteQuestion').value  = '';
+      document.getElementById('voteTargetDate').value= '';
+      document.getElementById('voteDeadline').value  = '';
+      btn.disabled = false; btn.textContent = '투표 생성 및 공지 올리기';
+      alert('투표가 생성되었고 공지가 올라갔어요!');
+    });
+  }
+
+  /* ══ 투표 마감일 자동 종료 체크 ══ */
+  function isExpired(v) {
+    if (!v.deadline) return false;
+    const today = new Date().toISOString().slice(0,10);
+    return today > v.deadline;
+  }
+
+  /* ══ 실시간 투표 목록 ══ */
+  onValue(ref(fdb, 'votes'), async snap => {
+    const el = document.getElementById('voteList');
+    if (!snap.exists()) {
+      el.innerHTML = `<div class="empty"><div class="e-icon">🗳️</div><p>진행 중인 투표가 없어요</p></div>`;
+      return;
+    }
+    const votes = Object.values(snap.val()).sort((a,b) => {
+      if (a.status !== b.status) return a.status==='open' ? -1 : 1;
+      return b.createdAt - a.createdAt;
+    });
+
+    // 마감일 지난 투표 자동 종료
+    for (const v of votes) {
+      if (v.status === 'open' && isExpired(v)) {
+        await update(ref(fdb, `votes/${v.id}`), { status: 'closed' });
+      }
+    }
+
+    el.innerHTML = votes.map(v => buildCard(v)).join('');
+    attachEvents();
+  });
+
+  /* ══ 카드 빌드 ══ */
+  function buildCard(v) {
+    const isOpen   = v.status === 'open';
+    const voters   = v.voters || {};
+    const myVote   = voters[user.id];
+    const hasVoted = myVote !== undefined;
+    const total    = Object.keys(voters).length;
+    const options  = v.options || [];
+
+    const counts = options.map((_, i) =>
+      Object.values(voters).filter(val =>
+        options[i].isEtc
+          ? typeof val==='string' && val.startsWith('etc:')
+          : val === i
+      ).length
+    );
+
+    const sorted = [...counts].sort((a,b)=>b-a);
+    const rankBadge = c => {
+      const r = sorted.indexOf(c);
+      if (r===0 && c>0) return `<span class="rank-b rb1">🥇1위</span>`;
+      if (r===1 && c>0) return `<span class="rank-b rb2">🥈2위</span>`;
+      if (r===2 && c>0) return `<span class="rank-b rb3">🥉3위</span>`;
+      return '';
+    };
+
+    const showResult = hasVoted || !isOpen;
+
+    const optsHTML = options.map((opt, i) => {
+      const pct  = total>0 ? Math.round(counts[i]/total*100) : 0;
+      const isMy = opt.isEtc
+        ? typeof myVote==='string' && myVote.startsWith('etc:')
+        : myVote === i;
+      const etcTexts = opt.isEtc
+        ? Object.values(voters)
+            .filter(v2 => typeof v2==='string' && v2.startsWith('etc:'))
+            .map(v2 => v2.replace('etc:',''))
+            .filter(Boolean).join(', ')
+        : '';
+
+      if (showResult) {
+        return `<div class="opt-row disabled">
+          <div class="result-wrap">
+            <div class="result-top">
+              <span style="font-weight:${isMy?700:400};color:${isMy?'var(--blue)':'var(--text)'}">
+                ${esc(opt.isEtc?'기타':opt.label)}${isMy?' ✓':''}
+                ${etcTexts?`<span style="font-size:11px;color:var(--muted);font-weight:400;"> (${esc(etcTexts)})</span>`:''}
+              </span>
+              <span style="font-size:12px;color:var(--muted)">${counts[i]}표 (${pct}%)${rankBadge(counts[i])}</span>
+            </div>
+            <div class="result-bar-bg"><div class="result-bar-fill" style="width:${pct}%"></div></div>
+          </div>
+        </div>`;
+      }
+
+      if (opt.isEtc) {
+        return `<div class="opt-row" data-vote="${v.id}" data-idx="${i}" data-etc="true">
+          <div class="radio-outer" id="ro-${v.id}-${i}"></div>
+          <span class="opt-label">기타</span>
+          <input class="etc-text-input" id="etc-${v.id}" type="text" placeholder="직접 입력"/>
+        </div>`;
+      }
+      return `<div class="opt-row" data-vote="${v.id}" data-idx="${i}" data-etc="false">
+        <div class="radio-outer" id="ro-${v.id}-${i}"></div>
+        <span class="opt-label">${esc(opt.label)}</span>
+      </div>`;
+    }).join('');
+
+    let footer = `<div class="total-votes">총 ${total}명 참여</div>`;
+    if (isOpen) {
+      if (hasVoted) {
+        footer += `<div class="voted-badge">✅ 투표 완료</div>`;
+      } else {
+        footer += `<button class="submit-btn" data-vid="${v.id}" data-etcidx="${options.length-1}">제출</button>`;
+      }
+      if (isTeacher) {
+        footer += `<button class="close-btn" data-vid="${v.id}">🚫 투표 그만하기</button>`;
+      }
+    } else {
+      footer += `<a class="result-link" href="vote-result.html?id=${v.id}">📊 결과 보기</a>`;
+    }
+
+    const deadlineStr = v.deadline ? `📌 마감 날짜: ${v.deadline}` : '';
+
+    return `<div class="vote-card${!isOpen?' closed':''}">
+      <div class="vote-card-head">
+        <div style="flex:1">
+          <div class="vote-question">${esc(v.question)}</div>
+          <div class="vote-meta">작성자: ${esc(v.createdBy)} · ${DB.timeAgo(v.createdAt)}</div>
+          <div class="vote-target">📅 대상 날짜: ${v.targetDate}</div>
+          ${deadlineStr ? `<div class="vote-deadline">${deadlineStr}</div>` : ''}
+        </div>
+        <div class="vote-status ${isOpen?'status-open':'status-closed'}">${isOpen?'진행 중':'종료됨'}</div>
+      </div>
+      <div class="vote-options">${optsHTML}</div>
+      <div class="vote-footer">${footer}</div>
+    </div>`;
+  }
+
+  /* ══ 이벤트 바인딩 (카드 렌더 후) ══ */
+  function attachEvents() {
+    // 선택지 클릭 → 라디오 토글
+    document.querySelectorAll('.opt-row[data-vote]').forEach(row => {
+      row.addEventListener('click', e => {
+        if (e.target.classList.contains('etc-text-input')) return;
+        const vid = row.dataset.vote;
+        const idx = row.dataset.idx;
+        // 같은 투표의 모든 라디오 리셋
+        document.querySelectorAll(`[id^="ro-${vid}-"]`).forEach(r => r.className='radio-outer');
+        // 현재 선택
+        document.getElementById(`ro-${vid}-${idx}`).className='radio-outer checked';
+        if (row.dataset.etc === 'true') {
+          document.getElementById(`etc-${vid}`)?.focus();
+        }
+      });
+    });
+
+    // 제출 버튼
+    document.querySelectorAll('.submit-btn').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const vid    = btn.dataset.vid;
+        const etcIdx = parseInt(btn.dataset.etcidx);
+        const checked= document.querySelector(`#ro-${vid}-0.checked,` +
+          Array.from({length:20},(_,i)=>`#ro-${vid}-${i}.checked`).join(','));
+        // 어느 것이 checked인지 찾기
+        let selected = null;
+        for (let i=0; i<20; i++) {
+          const el = document.getElementById(`ro-${vid}-${i}`);
+          if (el && el.classList.contains('checked')) { selected = i; break; }
+        }
+        if (selected === null) { alert('선택지를 골라주세요.'); return; }
+
+        const snap = await get(ref(fdb, `votes/${vid}`));
+        if (!snap.exists()) return;
+        const v = snap.val();
+        if (v.voters?.[user.id] !== undefined) { alert('이미 투표하셨습니다.'); return; }
+
+        let value = selected;
+        if (selected === etcIdx) {
+          const t = document.getElementById(`etc-${vid}`)?.value.trim() || '';
+          value = `etc:${t}`;
+        }
+        btn.disabled = true; btn.textContent = '제출 중...';
+        await update(ref(fdb, `votes/${vid}/voters`), { [user.id]: value });
+      });
+    });
+
+    // 투표 그만하기 (교사)
+    document.querySelectorAll('.close-btn').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const vid = btn.dataset.vid;
+        if (!confirm('투표를 종료할까요? 종료 후에는 다시 열 수 없어요.')) return;
+        await update(ref(fdb, `votes/${vid}`), { status: 'closed' });
+
+        const snap = await get(ref(fdb, `votes/${vid}`));
+        const v    = snap.val();
+        const voters  = v.voters || {};
+        const total   = Object.keys(voters).length;
+        const options = v.options || [];
+        const counts  = options.map((_, i) =>
+          Object.values(voters).filter(val =>
+            options[i].isEtc
+              ? typeof val==='string' && val.startsWith('etc:')
+              : val===i
+          ).length
+        );
+        const lines  = options.map((o,i)=>`${o.isEtc?'기타':o.label}: ${counts[i]}표`).join('\n');
+        const maxIdx = counts.indexOf(Math.max(...counts));
+        const winner = options[maxIdx];
+
+        await DB.addPost({
+          title  : `📊 [투표 결과] ${v.question}`,
+          content: `📅 대상 날짜: ${v.targetDate}\n총 투표 수: ${total}명\n\n${lines}\n\n🏆 1위: ${winner?.isEtc?'기타':winner?.label}`,
+          image: null, authorId: user.id, authorName: user.name,
+          authorRole: 'teacher', isVoteResult: true, voteId: vid
+        });
+        alert('투표가 종료되었고 결과 공지가 올라갔어요!');
+      });
+    });
+  }
+
+  function esc(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+</script>
+</body>
+</html>
